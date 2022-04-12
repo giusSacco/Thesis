@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import MDAnalysis as mda
 from timeit import default_timer as timer
 
+# TO DO:
 # Consider PBC
 
 def get_triplets(solvation_shell):
@@ -59,9 +60,6 @@ mn_ions = u.select_atoms('resname MN')
 for i,mn in enumerate(mn_ions):
     # Get solvation shell
     solvation_shell = [water for water in water_molecules if np.linalg.norm(mn.position - water.position) < 3]
-    if i == 0:
-        print(solvation_shell)
-
 
     # Get triplets
     triplets = get_triplets(solvation_shell)
