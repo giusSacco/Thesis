@@ -9,7 +9,9 @@ t(\d+   # "t" followed by a number, which is captured
 \d+)
 ''',re.VERBOSE)
 
-numeric_row_pattern = re.compile(r'''((?:   # regular expression of row of integers
+numeric_row_pattern = re.compile(r'''(   # regular expression of row of integers
+\s*         # 0 or more whitespaces
+(?:         # Non capturing group
 \d+         # integer
 [\n\r\s]+   # followed by whitespace or \n
 )+)         # repeated one or more times
