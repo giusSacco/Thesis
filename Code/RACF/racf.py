@@ -9,12 +9,14 @@ from timeit import default_timer as timer
 # Consider PBC
 
 def get_triplets(solvation_shell):
+    '''Returns list of all triplets of nearest neighbours water molecules in the solvation shell, corresponding to each plane of the octahedron.
+    Should work also if shell is less than 6.'''
     triplets=[]
-    for comb in combinations(range(len(solvation_shell)),3):
+    for comb in combinations(range(len(solvation_shell)),3):    # For each possible triplet
         #print(comb)
         pairs = combinations(comb, 2)
         for i,j in pairs:
-            if np.linalg.norm(solvation_shell[i].position - solvation_shell[j].position) > 4:
+            if np.linalg.norm(solvation_shell[i].position - solvation_shell[j].position) > 4:   # Checks that distances between water molecules is < 4, meaning they are nearest neighbours
                 break
         else:
             triplets.append(comb)
@@ -22,19 +24,18 @@ def get_triplets(solvation_shell):
     return triplets
 
 def compute_versors(triplet):
+    '''Returns versor normal to the plane corresponding to the triplet'''
     a = solvation_shell[triplet[0]].position - solvation_shell[triplet[1]].position
     b = solvation_shell[triplet[1]].position - solvation_shell[triplet[2]].position
-    #c = solvation_shell[triplet[2]].position - solvation_shell[triplet[0]].position
 
-    vector_1 = np.cross(a,b)
-    #vector_2 = np.cross(a,c)
-    vector_1 /= np.linalg.norm(vector_1)
-    #vector_2 /= np.linalg.norm(vector_2)
+    vector = np.cross(a,b)
+    vector /= np.linalg.norm(vector)    # Normalizazion
 
-    return vector_1
+    return vector
 
 def autocorrelation(versor, k):
-    N = versor.shape[1]
+    '''Returns temporal autocorrelation of versor evaluated at k. k is tau/delta_t'''
+    N = versor.shape[1]     # Lenght of simulation
 
     acf = 0
     for i in range(N-k):
@@ -52,23 +53,22 @@ directory_arrays = 'racf_arrays'
 #delta_t = 1 # ps
 
 u = mda.Universe(TPR, XTC)
-#print(u.atoms.residues.resnames)
 
 water_molecules = u.select_atoms('type OW')
 mn_ions = u.select_atoms('resname MN')
 
 for i,mn in enumerate(mn_ions):
     # Get solvation shell
-    solvation_shell = [water for water in water_molecules if np.linalg.norm(mn.position - water.position) < 3]
+    solvation_shell = [water for water in water_molecules if np.linalg.norm(mn.position - water.position) < 3]  # All OW that are closer than 3 to the Mn
 
     # Get triplets
     triplets = get_triplets(solvation_shell)
-    versors = {triplet : np.array(compute_versors(triplet)).reshape((3,1)) for triplet in triplets}
+    versors = {triplet : np.array(compute_versors(triplet)).reshape((3,1)) for triplet in triplets} # Dictionary: versors[triplet] gives versor corresponding to plane
 
     for frame in u.trajectory[1:]:
         # Calculate versors
         for triplet in triplets:
-            versors[triplet] = np.concatenate((versors[triplet], compute_versors(triplet).reshape((3,1))),axis=1)
+            versors[triplet] = np.concatenate((versors[triplet], compute_versors(triplet).reshape((3,1))),axis=1)   # Each versor contains time evolution, organised as [[x1,x2,...], [y1,y2,...], [z1,z2,...]]
     
     plt.figure(figsize=(8,5))
     
