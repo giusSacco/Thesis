@@ -19,6 +19,13 @@ def get_triplets(solvation_shell):
                 break
         else:
             triplets.append([solvation_shell[index] for index in comb])
+    # Check properties of shell
+    expected_number_triplets = {6:8, 5:4}   # expected_number_triplets[len(shell)] returns the expected number of planes for a shell of dimension len(shell)
+    if len(solvation_shell) not in expected_number_triplets.keys():
+        print(f'Warning: {len(solvation_shell)} water in solvation shell of {mn} detected at timestep {k}')
+    if len(triplets) != expected_number_triplets[len(solvation_shell)]:
+        print(f'Warning: {expected_number_triplets[len(solvation_shell)]} triplets were expected but {len(triplets)} were found\
+             for solvation shell of {mn} detected at timestep {k}')
     return triplets
 
 def difference_pbc(r1,r2):
@@ -95,7 +102,9 @@ if plot_histograms:
 # Dictionary: versors[mn] has time evolution stored as [[x1,x2,...], [y1,y2,...], [z1,z2,...]], identify rotation of shell
 versors = {mn : np.array(compute_versor(mn, *triplets_before[0])).reshape((3,1)) for mn in mn_ions}
 
+k=0 # Keeps track of frame number
 for frame in u.trajectory[1:]:
+    k+=1
     # Update info after time evolution
     solvation_shell_now = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
     triplets_now = get_triplets(solvation_shell_now)
