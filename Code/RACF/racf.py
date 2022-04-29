@@ -76,8 +76,6 @@ if sys.version_info.major != 3:
     sys.exit(1)
 
 working_dir = os.path.dirname(__file__)
-'''XTC = os.path.join(working_dir, 'hybr+6MN+36wat.0_200ps.xtc')
-TPR = os.path.join(working_dir, 'hybr+6MN+36wat.tpr')'''
 directory_figures = os.path.join(working_dir, 'Figures')
 directory_arrays = 'racf_arrays'
 
@@ -86,9 +84,11 @@ PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is hybr+6MN+36wat.0_200ps.xtc', default = 'hybr+6MN+36wat.0_200ps.xtc')
 parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is hybr+6MN+36wat.tpr', default = 'hybr+6MN+36wat.tpr')
+parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
 args_parser = parser.parse_args()
 XTC = args_parser.XTC
 TPR = args_parser.TPR
+plot_histograms = args_parser.plot_histograms
 
 #delta_t = 1 # ps
 
