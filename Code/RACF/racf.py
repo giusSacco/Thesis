@@ -84,52 +84,58 @@ u = mda.Universe(TPR, XTC)
 
 water_molecules = u.select_atoms('type OW')
 mn_ions = u.select_atoms('resname MN')
-mn = mn_ions[0]
-i = 0
-j = 0
 
-# Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
-solvation_shell_before = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
-# Triplets represent planes of the octahedron of the shell, see get_triplets() for further info
-triplets_before = get_triplets(solvation_shell_before)
+# Initialization of lists and dictionaries, see below for description
+solvation_shell_before = dict(); triplets_before = dict(); all_water_distances = list(); all_dist_mn_wat = list(); versors = dict()
+savefile_index = {mn : 0 for mn in mn_ions}  # Used in file saving
 
-if plot_histograms:
-    # Distance between each pair of water molecules in the shell, will be updated at each timestep.
-    all_water_distances = [distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_before,2)]
-    # Distance between mn and water in its shell, , will be updated at each timestep.
-    all_dist_mn_wat = [distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_before]
+for mn in mn_ions:
+    # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
+    solvation_shell_before[mn] = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
+    # Triplets represent planes of the octahedron of the shell, see get_triplets() for further info
+    triplets_before[mn] = get_triplets(solvation_shell_before[mn])
 
-# Dictionary: versors[mn] has time evolution stored as [[x1,x2,...], [y1,y2,...], [z1,z2,...]], identify rotation of shell
-versors = {mn : np.array(compute_versor(mn, *triplets_before[0])).reshape((3,1)) for mn in mn_ions}
+    if plot_histograms:
+        # Distance between each pair of water molecules in the shell, will be updated at each timestep.
+        all_water_distances.extend( [distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_before[mn],2)] )
+        # Distance between mn and water in its shell, , will be updated at each timestep.
+        all_dist_mn_wat.extend([distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_before[mn]])
 
+    # Identifies rotation of shell, has time evolution stored as [[x1,x2,...], [y1,y2,...], [z1,z2,...]]
+    versors[mn] = np.array(compute_versor(mn, *triplets_before[mn][0])).reshape((3,1))  # [mn][0] refers to first triplet of shell of mn
+
+solvation_shell_now = dict(); triplets_now = dict()
 k=0 # Keeps track of frame number
 for frame in u.trajectory[1:]:
     k+=1
-    # Update info after time evolution
-    solvation_shell_now = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
-    triplets_now = get_triplets(solvation_shell_now)
-    if plot_histograms:
-        all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now,2)])
-        all_dist_mn_wat.extend([distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_now])
 
-    if shells_are_same(triplets_now, triplets_before):  # Update versor
-        versors[mn] = np.concatenate((versors[mn], compute_versor(mn, *triplets_before[0]).reshape((3,1))),axis=1)
-    else:
-        if versors[mn].shape[1] > 100:   # Save only for stable shells
-            # Each array is saved as file, columns are x(t), y(t), z(t).
-            # i refers to Mn, j distingueshes different files referring to the same Mn
-            np.savetxt( os.path.join(directory_arrays, f'{i}_{j}'), versors[mn].transpose())
-            j += 1
-        # When shell changes we reset infos for new shell
-        solvation_shell_before = solvation_shell_now
-        triplets_before = triplets_now
-        versors[mn] = np.array( compute_versor(mn, *triplets_before[0]) ).reshape((3,1))
-else:   # at the end of the simulation save anyways
-    if versors[mn].shape[1] > 100:
-        np.savetxt( os.path.join(directory_arrays, f'{i}_{j}'), versors[mn].transpose())
-    # Plot histograms of distances
-    if plot_histograms:
-        hist_water_distances(all_water_distances)
-        hist_mn_water_distances(all_dist_mn_wat)
+    for i,mn in enumerate(mn_ions): # i indexes mn ions
+        # Update info after time evolution
+        solvation_shell_now[mn] = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
+        triplets_now[mn] = get_triplets(solvation_shell_now[mn])
+        if plot_histograms:
+            all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now[mn],2)])
+            all_dist_mn_wat.extend([distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_now[mn]])
+
+        if k == len(u.trajectory) - 1:  # If at the end of simulation save anyways
+            if versors[mn].shape[1] > 100:
+                np.savetxt( os.path.join(directory_arrays, f'{i}_{savefile_index[mn]}'), versors[mn].transpose())
+        elif shells_are_same(triplets_now[mn], triplets_before[mn]):  # Update versor
+            versors[mn] = np.concatenate((versors[mn], compute_versor(mn, *triplets_before[mn][0]).reshape((3,1))),axis=1)
+        else:   # Shell has changed
+            if versors[mn].shape[1] > 100:   # Save only for stable shells
+                # Each array is saved as file, columns are x(t), y(t), z(t).
+                # i refers to Mn, savefile_index[mn] distingueshes different files referring to the same Mn
+                np.savetxt( os.path.join(directory_arrays, f'{i}_{savefile_index[mn]}'), versors[mn].transpose())
+                savefile_index[mn] += 1
+            # When shell changes we reset infos for new shell
+            solvation_shell_before[mn] = solvation_shell_now[mn]
+            triplets_before[mn] = triplets_now[mn]
+            versors[mn] = np.array( compute_versor(mn, *triplets_before[mn][0]) ).reshape((3,1))
+
+# Plot histograms
+if plot_histograms:
+    hist_water_distances(all_water_distances)
+    hist_mn_water_distances(all_dist_mn_wat)
 
 print(f'Execution time: {timer()-timer_start:.1f}s' )
