@@ -1,4 +1,4 @@
-import os
+import os, sys
 from itertools import combinations
 import numpy as np
 import matplotlib.pyplot as plt
@@ -66,6 +66,11 @@ def hist_mn_water_distances(all_distances):
     plt.close()
 
 timer_start = timer()
+
+# Verify Python3
+if sys.version_info.major != 3:
+    print('Error: Program must be run with Python3')
+    sys.exit(1)
 
 working_dir = os.path.dirname(__file__)
 XTC = os.path.join(working_dir, 'hybr+6MN+36wat.0_200ps.xtc')
