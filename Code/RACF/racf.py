@@ -22,10 +22,10 @@ def get_triplets(solvation_shell):
     # Check properties of shell
     expected_number_triplets = {6:8, 5:4}   # expected_number_triplets[len(shell)] returns the expected number of planes for a shell of dimension len(shell)
     if len(solvation_shell) not in expected_number_triplets.keys():
-        print(f'Warning: {len(solvation_shell)} water in solvation shell of {mn} detected at timestep {k}')
-    if len(triplets) != expected_number_triplets[len(solvation_shell)]:
+        print(f'Warning: {len(solvation_shell)} water in solvation shell of Mn #{mn.id} detected at timestep {k}')
+    elif len(triplets) != expected_number_triplets[len(solvation_shell)]:
         print(f'Warning: {expected_number_triplets[len(solvation_shell)]} triplets were expected but {len(triplets)} were found\
-             for solvation shell of {mn} detected at timestep {k}')
+             for solvation shell of Mn #{mn.id} detected at timestep {k}')
     return triplets
 
 def difference_pbc(r1,r2):
