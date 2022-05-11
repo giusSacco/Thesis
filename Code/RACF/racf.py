@@ -125,7 +125,7 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
         out_file.write('\t'.join(('#frame','x','y','z','v1','v2','v3','flag','\n')))    # Header
         
         k=0 # Keeps track of frame number
-        for frame in u.trajectory [:]:
+        for frame in u.trajectory [:N]:
             k+=1
             # Print execution progress
             if k % (N//5) == 0:
