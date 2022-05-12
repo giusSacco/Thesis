@@ -25,9 +25,9 @@ def get_triplets(solvation_shell):
     expected_number_triplets = {6:8, 5:4}   # expected_number_triplets[len(shell)] returns the expected number of planes for a shell of dimension len(shell)
     if len(solvation_shell) == 4:
         pass
-    elif len(solvation_shell) not in expected_number_triplets.keys() and minor_warnings:    # Print this warning only if --mwarn is expressed in command line
+    elif len(solvation_shell) not in expected_number_triplets.keys():
         print(f'Warning: {len(solvation_shell)} water in solvation shell of Mn #{mn.id} detected at timestep {k}')
-    elif len(triplets) != expected_number_triplets[len(solvation_shell)]:
+    elif len(triplets) != expected_number_triplets[len(solvation_shell)]  and minor_warnings: # Print this warning only if --mwarn is expressed in command line
         print(f'Warning: {expected_number_triplets[len(solvation_shell)]} triplets were expected but {len(triplets)} were found \
         for solvation shell of Mn #{mn.id} detected at timestep {k}')
     return triplets
@@ -82,18 +82,16 @@ directory_arrays = 'racf_arrays'
 
 # Parsing XTC and TPR
 PROGNAME = os.path.basename(sys.argv[0])
-parser = ArgumentParser(prog = PROGNAME, description = program_description)
+parser = ArgumentParser(prog = PROGNAME, description = program_description, add_help=False)
 parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is 1/10ns_dense.MN+MNshell.xtc', default = '1/10ns_dense.MN+MNshell.xtc')
 parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is 1/MN+MNshells.tpr', default = '1/MN+MNshells.tpr')
 parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
 parser.add_argument('--mwarn', action='store_true', dest= 'minor_warnings', help='Print minor warning such as different number of triplets than expected. Defaults to False.')
-parser.add_argument('-n', dest= 'N', help='Number of frames to be analysed from the beginning. Default is all trajectory')
-args_parser = parser.parse_args()
+args_parser = parser.parse_known_args()[0]
 XTC = args_parser.XTC
 TPR = args_parser.TPR
 plot_histograms = args_parser.plot_histograms
 minor_warnings = args_parser.minor_warnings
-N = int(args_parser.N)
 
 #delta_t = 1 # ps
 
@@ -102,22 +100,21 @@ threshold_wt_wt = 3.75  # Solvation shell defined as all OW that are closer than
 threshold_mn_wt = 2.6   # If the distance between two wt of the same shell is > 2.6 they are assumed to be on opposite sides of the octahedron
 plot_histograms = True  # choose if plot histegrams
 
+# Initialize universe
 u = mda.Universe(TPR, XTC)
+
+# Parse N
+parser.add_argument('-n', dest= 'N', type = int, default=len(u.trajectory), help='Number of frames to be analysed from the beginning. Default is all trajectory')
+parser.add_argument('-h', '--help', action='help', default='==SUPPRESS==', help=('show this help message and exit'))
+args_parser = parser.parse_args()
+N = args_parser.N
 
 water_molecules = u.select_atoms('type OW')
 mn_ions = u.select_atoms('resname MN')
 
-parser.add_argument('--n', dest= 'N', help='Number of frames to be analysed from the beginning. Default is all trajectory', default = len(u.trajectory))
-args_parser = parser.parse_args()
 
 # Initialization of lists and dictionaries, see below for description
 all_water_distances = list(); all_dist_mn_wat = list()
-
-if N is not None:
-    if len(u.trajectory) < N:
-        print(f'Inserted value of N is greater than lenght of trajectory. Setted N = {len(u.trajectory)}.')
-        N = len(u.trajectory)
-else: N = len(u.trajectory)
 
 for i,mn in enumerate(mn_ions): # i indexes mn ions
     # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
@@ -159,7 +156,7 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
                     all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now,2)])
                     all_dist_mn_wat.extend([distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_now])
         except Exception as err:    # If an error happens during the trajectory analysis, pass to next ion 
-            print(f'Warning!: During the analysis of {mn} at frame #{k} the following exception occurred: {err} \n Proceeding to the next ion.\n')
+            print(f'Warning!: During the analysis of {mn.id} at frame #{k} the following exception occurred: {err} \n Proceeding to the next ion.\n')
             out_file.write(f'Warning! The following exception occurred: {err}')
             continue
 
