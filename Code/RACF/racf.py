@@ -25,7 +25,7 @@ def get_triplets(solvation_shell):
     expected_number_triplets = {6:8, 5:4}   # expected_number_triplets[len(shell)] returns the expected number of planes for a shell of dimension len(shell)
     if len(solvation_shell) == 4:
         pass
-    elif len(solvation_shell) not in expected_number_triplets.keys():
+    elif len(solvation_shell) not in expected_number_triplets.keys() and minor_warnings:    # Print this warning only if --mwarn is expressed in command line
         print(f'Warning: {len(solvation_shell)} water in solvation shell of Mn #{mn.id} detected at timestep {k}')
     elif len(triplets) != expected_number_triplets[len(solvation_shell)]:
         print(f'Warning: {expected_number_triplets[len(solvation_shell)]} triplets were expected but {len(triplets)} were found \
@@ -35,16 +35,14 @@ def get_triplets(solvation_shell):
 def difference_pbc(r1,r2):
     '''Computes difference r1 - r2 accounting for periodic boundaric conditions.'''
     L = u.dimensions[:3]    # u.dimensions is [a, b, c, alpha, beta, gamma]
-    return np.remainder(r1 - r2 + L/2., L) - L/2.
+    return np.remainder(r2 - r1 + L/2., L) - L/2.
 
-def compute_versor(mn, w1, w2, w3):
-    '''Returns versor obtained as sum of versor from mn to three waters'''
+def compute_versors(mn, w1, w2, w3):
+    '''Returns versors that point from the mn to the waters'''
     v1 = difference_pbc(mn.position, w1.position)
     v2 = difference_pbc(mn.position, w2.position)
     v3 = difference_pbc(mn.position, w3.position)
-    vector = v1/np.linalg.norm(v1) + v2/np.linalg.norm(v2) + v3/np.linalg.norm(v3)
-    #print(np.linalg.norm(vector / np.linalg.norm(vector)))
-    return vector / np.linalg.norm(vector)    # Normalizazion
+    return v1/np.linalg.norm(v1), v2/np.linalg.norm(v2), v3/np.linalg.norm(v3)    # Normalizazion
 
 def shells_are_same(triplets_shell1, triplets_shell2):
     '''Checks if triplets_shell1 == triplets_shell2'''
@@ -87,12 +85,15 @@ PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is 1/10ns_dense.MN+MNshell.xtc', default = '1/10ns_dense.MN+MNshell.xtc')
 parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is 1/MN+MNshells.tpr', default = '1/MN+MNshells.tpr')
-
 parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
+parser.add_argument('--mwarn', action='store_true', dest= 'minor_warnings', help='Print minor warning such as different number of triplets than expected. Defaults to False.')
+parser.add_argument('-n', dest= 'N', help='Number of frames to be analysed from the beginning. Default is all trajectory')
 args_parser = parser.parse_args()
 XTC = args_parser.XTC
 TPR = args_parser.TPR
 plot_histograms = args_parser.plot_histograms
+minor_warnings = args_parser.minor_warnings
+N = int(args_parser.N)
 
 #delta_t = 1 # ps
 
@@ -106,14 +107,17 @@ u = mda.Universe(TPR, XTC)
 water_molecules = u.select_atoms('type OW')
 mn_ions = u.select_atoms('resname MN')
 
-'''parser.add_argument('--n', dest= 'N', help='Number of frames to be analysed from the beginning. Default is all trajectory', default = len(u.trajectory))
+parser.add_argument('--n', dest= 'N', help='Number of frames to be analysed from the beginning. Default is all trajectory', default = len(u.trajectory))
 args_parser = parser.parse_args()
-N = args_parser.N'''
 
 # Initialization of lists and dictionaries, see below for description
 all_water_distances = list(); all_dist_mn_wat = list()
 
-N = min(20000, len(u.trajectory))
+if N is not None:
+    if len(u.trajectory) < N:
+        print(f'Inserted value of N is greater than lenght of trajectory. Setted N = {len(u.trajectory)}.')
+        N = len(u.trajectory)
+else: N = len(u.trajectory)
 
 for i,mn in enumerate(mn_ions): # i indexes mn ions
     # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
@@ -134,8 +138,8 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
                 # Update info after time evolution       
                 solvation_shell_now = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
                 triplets_now = get_triplets(solvation_shell_now)
-                if len(triplets_now) == 0:  # If no triplets found, save last versor
-                    out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versor,3,'\n']))
+                if len(triplets_now) == 0:  # If no triplets found, save last versors
+                    out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versors,3,'\n']))
                     continue
 
                 flag = 0    # Shell hasn't changed
@@ -148,8 +152,8 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
                     solvation_shell_before = solvation_shell_now
                     triplets_before = triplets_now
 
-                versor = compute_versor(mn, *triplets_before[0])            
-                out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versor,flag,'\n']))
+                versors = compute_versors(mn, *triplets_before[0])            
+                out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versors,flag,'\n']))
 
                 if plot_histograms:
                     all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now,2)])
