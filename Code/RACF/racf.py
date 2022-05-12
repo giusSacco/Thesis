@@ -120,40 +120,44 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
     solvation_shell_before = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
     # Triplets represent planes of the octahedron of the shell, see get_triplets() for further info
     triplets_before = get_triplets(solvation_shell_before)
-
+    
     with open(f'racf_arrays/{i}','w') as out_file:
-        out_file.write('\t'.join(('#frame','x','y','z','v1','v2','v3','flag','\n')))    # Header
-        
-        k=0 # Keeps track of frame number
-        for frame in u.trajectory [:N]:
-            k+=1
-            # Print execution progress
-            if k % (N//5) == 0:
-                print(f'{i+1}/{len(mn_ions)}, {k/N*100:.0f}%')
+        out_file.write('\t'.join(('t','x','y','z','v1','v2','v3','flag','\n')))    # Header
+        try:
+            k=0 # Keeps track of frame number
+            for frame in u.trajectory [:N]:
+                k+=1
+                # Print execution progress
+                if k % (N//5) == 0:
+                    print(f'{i+1}/{len(mn_ions)}, {k/N*100:.0f}%')
 
-            # Update info after time evolution       
-            solvation_shell_now = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
-            triplets_now = get_triplets(solvation_shell_now)
-            if len(triplets_now) == 0:  # If no triplets found, save last versor
-                out_file.write('\t'.join(str(x) for x in [k,*mn.position,*versor,3,'\n']))
-                continue
+                # Update info after time evolution       
+                solvation_shell_now = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
+                triplets_now = get_triplets(solvation_shell_now)
+                if len(triplets_now) == 0:  # If no triplets found, save last versor
+                    out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versor,3,'\n']))
+                    continue
 
-            flag = 0    # Shell hasn't changed
-            if not shells_are_same(triplets_now, triplets_before):     
-                if solvation_shell_before != solvation_shell_now:  # External exchange
-                    flag = 1
-                else:   # Internal Exchange
-                    flag = 2
-                # When shell changes we reset infos for new shell
-                solvation_shell_before = solvation_shell_now
-                triplets_before = triplets_now
+                flag = 0    # Shell hasn't changed
+                if not shells_are_same(triplets_now, triplets_before):     
+                    if solvation_shell_before != solvation_shell_now:  # External exchange
+                        flag = 1
+                    else:   # Internal Exchange
+                        flag = 2
+                    # When shell changes we reset infos for new shell
+                    solvation_shell_before = solvation_shell_now
+                    triplets_before = triplets_now
 
-            versor = compute_versor(mn, *triplets_before[0])            
-            out_file.write('\t'.join(str(x) for x in [k,*mn.position,*versor,flag,'\n']))
+                versor = compute_versor(mn, *triplets_before[0])            
+                out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versor,flag,'\n']))
 
-            if plot_histograms:
-                all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now,2)])
-                all_dist_mn_wat.extend([distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_now])
+                if plot_histograms:
+                    all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now,2)])
+                    all_dist_mn_wat.extend([distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] for water in solvation_shell_now])
+        except Exception as err:    # If an error happens during the trajectory analysis, pass to next ion 
+            print(f'Warning!: During the analysis of {mn} at frame #{k} the following exception occurred: {err} \n Proceeding to the next ion.\n')
+            out_file.write(f'Warning! The following exception occurred: {err}')
+            continue
 
 # Plot histograms
 if plot_histograms:
