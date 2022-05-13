@@ -123,7 +123,7 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
     triplets_before = get_triplets(solvation_shell_before)
     
     with open(f'racf_arrays/{i}','w') as out_file:
-        out_file.write('\t'.join(('t','x','y','z','v1','v2','v3','flag','\n')))    # Header
+        out_file.write(' '.join(('t','x','y','z','v1','v2','v3','flag','\n')))    # Header
         try:
             k=0 # Keeps track of frame number
             for frame in u.trajectory [:N]:
@@ -136,7 +136,7 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
                 solvation_shell_now = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
                 triplets_now = get_triplets(solvation_shell_now)
                 if len(triplets_now) == 0:  # If no triplets found, save last versors
-                    out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versors,3,'\n']))
+                    out_file.write(' '.join(str(x) for x in [u.trajectory.time,*mn.position,*versors,3,'\n']))
                     continue
 
                 flag = 0    # Shell hasn't changed
@@ -150,7 +150,7 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
                     triplets_before = triplets_now
 
                 versors = compute_versors(mn, *triplets_before[0])            
-                out_file.write('\t'.join(str(x) for x in [u.trajectory.time,*mn.position,*versors,flag,'\n']))
+                out_file.write(' '.join(str(x) for x in [u.trajectory.time,*mn.position,*versors,flag,'\n']))
 
                 if plot_histograms:
                     all_water_distances.extend([distances.distance_array(pair[0].position, pair[1].position, box=u.dimensions)[0,0] for pair in combinations(solvation_shell_now,2)])
