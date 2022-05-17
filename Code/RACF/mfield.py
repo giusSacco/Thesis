@@ -1,5 +1,7 @@
 import os, re
 import numpy as np
+from scipy.constants import mu_0, pi, hbar
+import scipy.constants
 from timeit import default_timer as timer
 
 timer_start = timer()
@@ -33,7 +35,14 @@ def read_file(filename):
 
     return t, position, v1, v2, v3, flag
 
+# Read input file
 dir = 'racf_arrays'; filename = '0'
 t, position, v1, v2, v3, flag = read_file(os.path.join(dir,filename))
+
+mu_b = scipy.constants.physical_constants['Bohr magneton'][0]  # 9.274009994e-24 J T^-1
+g = scipy.constants.physical_constants['electron g factor'][0]  # -2.00231930436182
+def magn_dip(versor):
+    return g*mu_b*np.sqrt((5/2)*(5/2+1))*versor*hbar
+
 
 print(f'Execution time: {timer()-timer_start:.1f}s' )
