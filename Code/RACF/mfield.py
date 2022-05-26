@@ -41,8 +41,16 @@ t, position, v1, v2, v3, flag = read_file(os.path.join(dir,filename))
 
 mu_b = scipy.constants.physical_constants['Bohr magneton'][0]  # 9.274009994e-24 J T^-1
 g = scipy.constants.physical_constants['electron g factor'][0]  # -2.00231930436182
-def magn_dip(versor):
-    return g*mu_b*np.sqrt((5/2)*(5/2+1))*versor*hbar
+A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))
+def magn_dip(r_1,r_2,spin_dir):
+    r = r_2 - r_1
+    r_versor = r/np.linalg.norm(r)
+    return A*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(np.linalg.norm(r)**3)
+
+def random_dir():
+    vec = np.random.standard_normal(size=3)
+    vec /= np.linalg.norm(vec)
+    return vec
 
 
 print(f'Execution time: {timer()-timer_start:.1f}s' )
