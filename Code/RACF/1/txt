@@ -1,0 +1,3 @@
+gmx trgconv -f shel__.xtc -s shells.tpr -o filenuovo.xtc -dt 100
+
+
