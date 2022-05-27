@@ -83,8 +83,8 @@ directory_arrays = 'racf_arrays'
 # Parsing XTC and TPR
 PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description, add_help=False)
-parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is 1/10ns_dense.MN+MNshell.xtc', default = '1/10ns_dense.MN+MNshell.xtc')
-parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is 1/MN+MNshells.tpr', default = '1/MN+MNshells.tpr')
+parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is filenuovo.xtc', default = 'filenuovo.xtc')
+parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is shells.tpr', default = 'shells.tpr')
 parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
 parser.add_argument('--mwarn', action='store_true', dest= 'minor_warnings', help='Print minor warning such as different number of triplets than expected. Defaults to False.')
 args_parser = parser.parse_known_args()[0]
@@ -116,7 +116,8 @@ mn_ions = u.select_atoms('resname MN')
 # Initialization of lists and dictionaries, see below for description
 all_water_distances = list(); all_dist_mn_wat = list()
 
-for i,mn in enumerate(mn_ions): # i indexes mn ions
+Ion_index = 60
+for i,mn in enumerate(mn_ions[Ion_index:Ion_index+10], start = Ion_index): # i indexes mn ions
     # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
     solvation_shell_before = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
     # Triplets represent planes of the octahedron of the shell, see get_triplets() for further info
@@ -129,7 +130,7 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
             for frame in u.trajectory [:N]:
                 k+=1
                 # Print execution progress
-                if k % (N//5) == 0:
+                if k % (N//10) == 0:
                     print(f'{i+1}/{len(mn_ions)}, {k/N*100:.0f}%')
 
                 # Update info after time evolution       
@@ -159,10 +160,11 @@ for i,mn in enumerate(mn_ions): # i indexes mn ions
             print(f'Warning!: During the analysis of {mn.id} at frame #{k} the following exception occurred: {err} \n Proceeding to the next ion.\n')
             out_file.write(f'Warning! The following exception occurred: {err}')
             continue
+    print(f'Partial execution time: {timer()-timer_start:.1f}s' )
 
 # Plot histograms
 if plot_histograms:
     hist_water_distances(all_water_distances)
     hist_mn_water_distances(all_dist_mn_wat)
 
-print(f'Execution time: {timer()-timer_start:.1f}s' )
+print(f'Total execution time: {timer()-timer_start:.1f}s' )
