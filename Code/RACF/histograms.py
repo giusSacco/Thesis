@@ -39,14 +39,24 @@ dir = 'racf_arrays'
 z_hist = []
 counter_z_frames = 0
 all_z = []
+
+delta_t_transitions = []
 for filename in os.listdir(dir):
     t, position, _, _, _, flag = read_file(os.path.join(dir,filename))
-    
+    t_transitions = []
     for i,pos in enumerate(position):
+        
         all_z.append(pos[2])
         if flag[i] == 1:
             z_hist.append(pos[2])
+            t_transitions.append(t[i])
     counter_z_frames += len([pos[2] for pos in position if 20<pos[2]])
+    if 2 <= len(t_transitions):
+        t_transitions = np.array(t_transitions)
+        delta_t_transitions.extend(t_transitions[1:] - t_transitions[:-1])
+        
+
+
 print(f'Execution time: {timer()-timer_start:.1f}s' )
 res_time = int(counter_z_frames)/10     # Residence time for 20<z in ns
 n_transitions = len([z for z in z_hist if 20<z])
@@ -64,3 +74,11 @@ plt.xlabel('z')
 plt.ylabel('z occurrency')
 plt.savefig('Histograms/hist_z_ion_distribution.png')
 plt.close()
+
+plt.hist(delta_t_transitions, log=True, bins = 200)
+plt.xlabel('dt')
+plt.ylabel('transitions')
+plt.savefig('Histograms/hist_dt_transitions.png')
+plt.close()
+
+
