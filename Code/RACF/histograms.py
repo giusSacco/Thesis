@@ -76,9 +76,10 @@ plt.savefig('Histograms/hist_z_ion_distribution.png')
 plt.close()
 
 plt.hist(delta_t_transitions, log=True, bins = 200)
-plt.xlabel('dt')
+plt.xlabel('dt (ps)')
 plt.ylabel('transitions')
 plt.savefig('Histograms/hist_dt_transitions.png')
 plt.close()
 
+#np.savetxt('dt_transitions',delta_t_transitions)
 
