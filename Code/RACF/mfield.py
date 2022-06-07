@@ -3,6 +3,8 @@ import numpy as np
 from scipy.constants import mu_0, pi, hbar
 import scipy.constants
 from timeit import default_timer as timer
+import matplotlib.pyplot as plt
+from scipy.fft import fft
 
 timer_start = timer()
 def read_file(filename):
@@ -36,12 +38,12 @@ def read_file(filename):
     return t, position, v1, v2, v3, flag
 
 # Read input file
-dir = 'racf_arrays'; filename = '0'
-t_list, position, v1, v2, v3, flag = read_file(os.path.join(dir,filename))
+dir = 'racf_arrays'
 
 mu_b = scipy.constants.physical_constants['Bohr magneton'][0]  # 9.274009994e-24 J T^-1
 g = scipy.constants.physical_constants['electron g factor'][0]  # -2.00231930436182
 A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))
+
 def magn_field(r_1,r_2,spin_dir):
     r = r_2 - r_1
     r_versor = r/np.linalg.norm(r)
@@ -51,11 +53,43 @@ def random_dir():
     vec = np.random.standard_normal(size=3)
     vec /= np.linalg.norm(vec)
     return vec
+N = 1001
+B = np.zeros((N,3))
+nv_pos = np.array([111.067/2,111.067/2,1.041])
 with open(f'magnetic_field.txt','w') as out_file:
-    out_file.write('t B')
-    for t in t_list:
-        pass
+    out_file.write('t B\n')
 
+    for filename in os.listdir(dir):
+        t_list, position, v1, v2, v3, flag = read_file(os.path.join(dir,filename))
+        alpha, beta, gamma = random_dir()
+        
+        for i,t in enumerate(t_list):
+            if flag != 0:
+                alpha, beta, gamma = random_dir()
+            spin_dir = alpha*v1[i] + beta*v2[i] + gamma*v3[i]
+            out_file.write('{} {} {}\n'.format(*magn_field(nv_pos, position[i], spin_dir)))
+            B[i] += magn_field(nv_pos, position[i], spin_dir)
+
+def autocorrelation(versor, k):
+    '''Returns temporal autocorrelation of versor evaluated at k. k is tau/delta_t'''
+    acf = 0
+    for i in range(N-k):
+        acf += np.dot(versor[i],versor[i+k])
+    return acf/(N-k)
+
+plt.plot(B[:,0])
+plt.figure()
+plt.plot(B[:,1])
+plt.figure()
+plt.plot(B[:,2])
+
+for x in [0,1,2]:
+    racf = []
+    plt.figure()
+    for k in range(N//2):
+        racf.append( autocorrelation(B[:,x],k) )
+    plt.plot(racf)
+plt.show()
 
 
 
