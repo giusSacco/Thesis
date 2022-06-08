@@ -1,6 +1,5 @@
 import os, sys
 from argparse import ArgumentParser
-from typing import NoReturn, Optional
 from itertools import combinations
 import numpy as np
 import matplotlib.pyplot as plt
@@ -56,7 +55,7 @@ def hist_water_distances(all_distances):
     plt.ylabel('Count')
     plt.yscale('log')
     plt.hist(all_distances, bins=50)
-    plt.savefig('hist_water_dist.png')
+    plt.savefig(os.path.join(directory_output,'hist_water_dist.png'))
     plt.close()
 
 def hist_mn_water_distances(all_distances):
@@ -64,7 +63,7 @@ def hist_mn_water_distances(all_distances):
     plt.ylabel('Count')
     plt.yscale('log')
     plt.hist(all_distances, bins=50)
-    plt.savefig('hist_mn_wat_dist.png')
+    plt.savefig(os.path.join(directory_output,'hist_mn_wat_dist.png'))
     plt.close()
 
 program_description = '''Analysis of dynamics of Mn ions and their solvation shell.'''
@@ -77,8 +76,7 @@ if sys.version_info.major != 3:
     sys.exit(1)
 
 working_dir = os.path.dirname(__file__)
-directory_figures = os.path.join(working_dir, 'Figures')
-directory_arrays = 'racf_arrays'
+
 
 # Parsing XTC and TPR
 PROGNAME = os.path.basename(sys.argv[0])
@@ -93,6 +91,12 @@ TPR = args_parser.TPR
 plot_histograms = args_parser.plot_histograms
 minor_warnings = args_parser.minor_warnings
 
+# Create output directory
+directory_output = XTC.removesuffix('.xtc')
+if not os.path.exists(directory_output):
+    os.mkdir(directory_output)
+if not os.path.exists(os.path.join(directory_output,'output_data')):
+    os.mkdir(os.path.join(directory_output,'output_data'))
 #delta_t = 1 # ps
 
 # Parameters
@@ -123,7 +127,7 @@ for i,mn in enumerate(mn_ions[Ion_index:Ion_index+10], start = Ion_index): # i i
     # Triplets represent planes of the octahedron of the shell, see get_triplets() for further info
     triplets_before = get_triplets(solvation_shell_before)
     
-    with open(f'racf_arrays/{i}','w') as out_file:
+    with open(os.path.join(directory_output,'output_data',f'{i}'),'w') as out_file:
         out_file.write(' '.join(('t','x','y','z','v1','v2','v3','flag','\n')))    # Header
         try:
             k=0 # Keeps track of frame number
