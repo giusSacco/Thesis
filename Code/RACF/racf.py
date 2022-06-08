@@ -81,7 +81,7 @@ working_dir = os.path.dirname(__file__)
 # Parsing XTC and TPR
 PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description, add_help=False)
-parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is filenuovo.xtc', default = 'filenuovo.xtc')
+parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is shells_0_20ns.dense.xtc', default = 'shells_0_20ns.dense.xtc')
 parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is shells.tpr', default = 'shells.tpr')
 parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
 parser.add_argument('--mwarn', action='store_true', dest= 'minor_warnings', help='Print minor warning such as different number of triplets than expected. Defaults to False.')
