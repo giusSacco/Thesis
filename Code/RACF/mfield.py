@@ -1,9 +1,7 @@
-import os, re
+import os, re, sys
 import numpy as np
-from scipy.constants import mu_0, pi, hbar
-import scipy.constants
 from timeit import default_timer as timer
-import matplotlib.pyplot as plt
+from argparse import ArgumentParser
 
 timer_start = timer()
 def read_file(filename):
@@ -14,6 +12,7 @@ def read_file(filename):
             (\d)                    # flag: integer
             ''',re.VERBOSE)
     # Initialize lists
+
     v1 = list(); v2 = list(); v3 = list(); position = list(); t = list(); flag = list()
     # Read input file
     with open(filename) as input_file:
@@ -36,15 +35,23 @@ def read_file(filename):
 
     return t, position, v1, v2, v3, flag
 
+program_description = '''Calculates magnetic field from files produced by racf.py.'''
+PROGNAME = os.path.basename(sys.argv[0])
+parser = ArgumentParser(prog = PROGNAME, description = program_description)
+parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input file should be in the subdirectory output_data.')
+parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radious (in Angstrom) for magnetic field calculation.')
+args_parser = parser.parse_args()
+out_dir = args_parser.dir
+r_cutoff = args_parser.r_cut
 # Read input file
-out_dir = 'shells_0_20ns.dense'
 input_dir = os.path.join(out_dir,'output_data')
 
-mu_b = scipy.constants.physical_constants['Bohr magneton'][0]  # 9.274009994e-24 J T^-1
-g = scipy.constants.physical_constants['electron g factor'][0]  # -2.00231930436182
+mu_b = 9.274009994e-24 #J T^-1
+g = -2.00231930436182
+mu_0 = 1.25663706212e-06
+pi = 3.141592653589793
 A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))
 
-#r_cutoff = 130
 
 def magn_field(r_1,r_2,spin_dir):
     B=0
@@ -56,9 +63,10 @@ def magn_field(r_1,r_2,spin_dir):
         for y in [-2,-1,0,1,2]:
             pbc_vector = np.array([x,y,0])*111.067
             r = r_2 + pbc_vector - r_1
-            r_versor = r/np.linalg.norm(r)
-            if np.linalg.norm(r) < r_cutoff:
-                B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(np.linalg.norm(r)**3)
+            r_norm = np.linalg.norm(r)
+            r_versor = r/r_norm
+            if r_norm < r_cutoff:
+                B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
     return B
 
 def random_dir():
@@ -70,8 +78,7 @@ N = 20001
 B = np.zeros((N,3))
 nv_pos = np.array([111.067/2,111.067/2,-56.6])
 j=0
-r_cutoff = 100
-with open(os.path.join(out_dir,f'magnetic_field_rcut{r_cutoff}.txt'),'w') as out_file:
+with open(os.path.join(out_dir,f'magnetic_field_rcut{int(r_cutoff)}.txt'),'w') as out_file:
     out_file.write('t B\n')
     for filename in os.listdir(input_dir):
         t_list, position, v1, v2, v3, flag = read_file(os.path.join(input_dir,filename))
