@@ -4,7 +4,6 @@ from scipy.constants import mu_0, pi, hbar
 import scipy.constants
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
-from scipy.fft import fft
 
 timer_start = timer()
 def read_file(filename):
@@ -53,8 +52,8 @@ def magn_field(r_1,r_2,spin_dir):
     if r_2[2] < 9:
         r_2[2] += 165
 
-    for x in [-1,0,1]:
-        for y in [-1,0,-1]:
+    for x in [-2,-1,0,1,2]:
+        for y in [-2,-1,0,1,2]:
             pbc_vector = np.array([x,y,0])*111.067
             r = r_2 + pbc_vector - r_1
             r_versor = r/np.linalg.norm(r)
@@ -67,48 +66,28 @@ def random_dir():
     vec /= np.linalg.norm(vec)
     return vec
 
-N = 1000
+N = 20001
 B = np.zeros((N,3))
-nv_pos = np.array([111.067/2,111.067/2,-70.41])
-for r_cutoff in [100,125,150,175,200]:
-    with open(os.path.join(out_dir,f'magnetic_field.txt'),'w') as out_file:
-        out_file.write('t B\n')
-
-        for filename in os.listdir(input_dir):
-            t_list, position, v1, v2, v3, flag = read_file(os.path.join(input_dir,filename))
-            alpha, beta, gamma = random_dir()
-            
-            for i,t in enumerate(t_list):
-                if flag[i] != 0:
-                    alpha, beta, gamma = random_dir()
-                spin_dir = alpha*v1[i] + beta*v2[i] + gamma*v3[i]
-                #out_file.write('{} {} {}\n'.format(*magn_field(nv_pos, position[i], spin_dir)))
-                B[i] += magn_field(nv_pos, position[i], spin_dir)
+nv_pos = np.array([111.067/2,111.067/2,-56.6])
+j=0
+r_cutoff = 100
+with open(os.path.join(out_dir,f'magnetic_field_rcut{r_cutoff}.txt'),'w') as out_file:
+    out_file.write('t B\n')
+    for filename in os.listdir(input_dir):
+        t_list, position, v1, v2, v3, flag = read_file(os.path.join(input_dir,filename))
+        alpha, beta, gamma = random_dir()
+        
+        
         for i,t in enumerate(t_list):
-            out_file.write('{} {} {} {}\n'.format(t, *B[i]))
+            if flag[i] != 0:
+                alpha, beta, gamma = random_dir()
+            spin_dir = alpha*v1[i] + beta*v2[i] + gamma*v3[i]
 
-    def autocorrelation(versor, k):
-        '''Returns temporal autocorrelation of versor evaluated at k. k is tau/delta_t'''
-        acf = 0
-        for i in range(N-k):
-            acf += np.dot(versor[i],versor[i+k])
-        return acf/(N-k)
-
-
-    for x in [0,1,2]:
-        plt.figure(x)
-        plt.title(f'B{x}')
-        plt.plot(B[:,x], label=f'r_cut = {r_cutoff}')
-        racf = []
-        plt.legend()
-        plt.figure(x+3)
-        plt.title(f'RACF{x}')
-        for k in range(N//2):
-            racf.append( autocorrelation(B[:,x],k) )
-        racf = np.array(racf)/racf[0]
-        plt.plot(racf, label=f'r_cut = {r_cutoff}')
-        plt.legend()
+            B[i] += magn_field(nv_pos, position[i], spin_dir)
+        if (j+1)%10 == 0 :
+            print(f' {j+1}/{len(os.listdir(input_dir))}, {timer()-timer_start:.1f}s')
+        j+=1
+    for i,t in enumerate(t_list):
+        out_file.write('{} {} {} {}\n'.format(t, *B[i]))
 
 print(f'Execution time: {timer()-timer_start:.1f}s' )
-plt.legend()
-plt.show()
