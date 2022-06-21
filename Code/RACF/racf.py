@@ -78,26 +78,29 @@ if sys.version_info.major != 3:
 working_dir = os.path.dirname(__file__)
 
 
-# Parsing XTC and TPR
+# Parsing command-line inputs
 PROGNAME = os.path.basename(sys.argv[0])
-parser = ArgumentParser(prog = PROGNAME, description = program_description, add_help=False)
-parser.add_argument('--xtc', dest= 'XTC', help='XTC file. Default is shells_0_20ns.dense.xtc', default = 'shells_0_20ns.dense.xtc')
-parser.add_argument('--tpr', dest= 'TPR', help='TPR file. Default is shells.tpr', default = 'shells.tpr')
+parser = ArgumentParser(prog = PROGNAME, description = program_description)
+parser.add_argument('--xtc', dest= 'XTC', help='XTC file.')
+parser.add_argument('--tpr', dest= 'TPR', help='TPR file.')
+parser.add_argument('--startingindex', type = int, dest= 'starting_index', help='Analyzes trajectory of 10 ions starting from specified index.')
+parser.add_argument('-n', dest= 'N', type = int, help='Number of frames to be analysed from the beginning. Default is all trajectory.')
 parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
 parser.add_argument('--mwarn', action='store_true', dest= 'minor_warnings', help='Print minor warning such as different number of triplets than expected. Defaults to False.')
-args_parser = parser.parse_known_args()[0]
+args_parser = parser.parse_args()
 XTC = args_parser.XTC
 TPR = args_parser.TPR
+Ion_index = args_parser.starting_index
 plot_histograms = args_parser.plot_histograms
 minor_warnings = args_parser.minor_warnings
+N = args_parser.N
 
 # Create output directory
-directory_output = XTC.removesuffix('.xtc')
+directory_output = XTC[:-4]
 if not os.path.exists(directory_output):
     os.mkdir(directory_output)
 if not os.path.exists(os.path.join(directory_output,'output_data')):
     os.mkdir(os.path.join(directory_output,'output_data'))
-#delta_t = 1 # ps
 
 # Parameters
 threshold_wt_wt = 3.75  # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
@@ -107,11 +110,8 @@ plot_histograms = True  # choose if plot histegrams
 # Initialize universe
 u = mda.Universe(TPR, XTC)
 
-# Parse N
-parser.add_argument('-n', dest= 'N', type = int, default=len(u.trajectory), help='Number of frames to be analysed from the beginning. Default is all trajectory')
-parser.add_argument('-h', '--help', action='help', default='==SUPPRESS==', help=('show this help message and exit'))
-args_parser = parser.parse_args()
-N = args_parser.N
+if N is None:
+    N = len(u.trajectory)
 
 water_molecules = u.select_atoms('type OW')
 mn_ions = u.select_atoms('resname MN')
@@ -120,7 +120,6 @@ mn_ions = u.select_atoms('resname MN')
 # Initialization of lists and dictionaries, see below for description
 all_water_distances = list(); all_dist_mn_wat = list()
 
-Ion_index = 60
 for i,mn in enumerate(mn_ions[Ion_index:Ion_index+10], start = Ion_index): # i indexes mn ions
     # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
     solvation_shell_before = [water for water in water_molecules if distances.distance_array(mn.position, water.position, box=u.dimensions)[0,0] < threshold_mn_wt]
@@ -134,7 +133,7 @@ for i,mn in enumerate(mn_ions[Ion_index:Ion_index+10], start = Ion_index): # i i
             for frame in u.trajectory [:N]:
                 k+=1
                 # Print execution progress
-                if k % (N//10) == 0:
+                if k % (N//1000) == 0:
                     print(f'{i+1}/{len(mn_ions)}, {k/N*100:.0f}%')
 
                 # Update info after time evolution       

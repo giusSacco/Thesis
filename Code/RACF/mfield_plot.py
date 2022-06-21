@@ -1,6 +1,5 @@
 
 import re, os
-from matplotlib import rc_context
 import matplotlib.pyplot as plt
 import numpy as np
 from timeit import default_timer as timer
