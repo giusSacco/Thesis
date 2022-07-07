@@ -71,14 +71,17 @@ def magn_field(r_1,r_2,spin_dir):
     if r_2[2] < 9:
         r_2[2] += 165
 
-    for x in [-2,-1,0,1,2]:
-        for y in [-2,-1,0,1,2]:
-            pbc_vector = np.array([x,y,0])*111.067
-            r = r_2 + pbc_vector - r_1
-            r_norm = np.linalg.norm(r)
-            r_versor = r/r_norm
-            if r_norm < r_cutoff:
-                B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
+    n_boxes_z = int((r_cutoff-nv_pos[2])//160)  # Number of boxes to be considered along z (comprehending the #0)
+    n_boxes_xy = int((r_cutoff-111.067/2)//111.067) +1  # Number of boxes to be considered along x or y (not counting the #0)
+    for x in range(-n_boxes_xy, n_boxes_xy+1):
+        for y in range(-n_boxes_xy, n_boxes_xy+1):
+            for z in range(n_boxes_z +1):
+                pbc_vector = np.array([x,y,z])*np.array([111.067,111.067,160])
+                r = r_2 + pbc_vector - r_1
+                r_norm = np.linalg.norm(r)
+                r_versor = r/r_norm
+                if r_norm < r_cutoff:
+                    B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
     return B
 
 def random_dir():
