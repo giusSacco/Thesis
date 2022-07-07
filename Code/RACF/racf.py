@@ -81,9 +81,9 @@ working_dir = os.path.dirname(__file__)
 # Parsing command-line inputs
 PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
-parser.add_argument('--xtc', dest= 'XTC', help='XTC file.')
-parser.add_argument('--tpr', dest= 'TPR', help='TPR file.')
-parser.add_argument('--startingindex', type = int, dest= 'starting_index', help='Analyzes trajectory of 10 ions starting from specified index.')
+parser.add_argument('--xtc', dest= 'XTC', required = True, help='XTC file.')
+parser.add_argument('--tpr', dest= 'TPR', required = True, help='TPR file.')
+parser.add_argument('--startingindex', type = int, required = True, dest= 'starting_index', help='Analyzes trajectory of 10 ions starting from specified index.')
 parser.add_argument('-n', dest= 'N', type = int, help='Number of frames to be analysed from the beginning. Default is all trajectory.')
 parser.add_argument('--plot',action='store_true', dest= 'plot_histograms', help='Produce histograms of distances, defaults to False')
 parser.add_argument('--mwarn', action='store_true', dest= 'minor_warnings', help='Print minor warning such as different number of triplets than expected. Defaults to False.')
@@ -127,13 +127,13 @@ for i,mn in enumerate(mn_ions[Ion_index:Ion_index+10], start = Ion_index): # i i
     triplets_before = get_triplets(solvation_shell_before)
     
     with open(os.path.join(directory_output,'output_data',f'{i}'),'w') as out_file:
-        out_file.write(' '.join(('t','x','y','z','v1','v2','v3','flag','\n')))    # Header
+        out_file.write(' '.join(('t','x','y','z','v1','v2','v3','flag',f'N = {N}','\n')))    # Header
         try:
             k=0 # Keeps track of frame number
             for frame in u.trajectory [:N]:
                 k+=1
                 # Print execution progress
-                if k % (N//1000) == 0:
+                if (k*1000) % N == 0:
                     print(f'{i+1}/{len(mn_ions)}, {k/N*100:.0f}%')
 
                 # Update info after time evolution       
