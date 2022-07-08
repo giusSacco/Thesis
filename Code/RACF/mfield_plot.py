@@ -29,12 +29,13 @@ pattern = re.compile(r'''
         (\d+)
         \.txt
         ''',re.VERBOSE)
-t_list = []
-Bx_list = list(); By_list= list(); Bz_list = list()
-files = [filename for filename in os.listdir(input_dir) if pattern.match(filename)]
 
+files = [filename for filename in os.listdir(input_dir) if pattern.match(filename)]
+Bz2_avg = dict(); By2_avg = dict(); Bx2_avg = dict()
 for j,file_ in enumerate(files):
     r_cutoff = int(pattern.match(file_).group(1))
+    t_list = []
+    Bx_list = list(); By_list= list(); Bz_list = list()
     with open(os.path.join(input_dir,file_)) as f:
         line = f.readline()
         if j == 0:
@@ -49,6 +50,9 @@ for j,file_ in enumerate(files):
             Bz_list.append(float(Bz))
             line = f.readline()
             i+=1
+    Bz_array = np.array(Bz_list); Bx_array = np.array(Bx_list); By_array = np.array(By_list)
+    Bz2_avg[r_cutoff] = np.average(Bz_array**2); By2_avg[r_cutoff] = np.average(By_array**2); Bx2_avg[r_cutoff] = np.average(Bx_array**2)
+
     for x,B,name in zip([0,1,2], [Bx_list,By_list,Bz_list], ['Bx','By','Bz']):
         plt.figure(x, figsize=(10,10))
         plt.title(f'{name}')
@@ -66,5 +70,17 @@ for j,file_ in enumerate(files):
 for x, name in zip(range(6), ['Bx','By','Bz', 'Bx_corr', 'By_corr', 'Bz_corr']):
     plt.figure(x)
     plt.savefig(os.path.join(input_dir,f'{name}.png'))
+    plt.close()
+
+plt.title('<B^2>')
+plt.xlabel('r_cutoff')
+plt.ylabel('<B^2>')
+plt.scatter(Bz2_avg.keys(), Bz2_avg.values(), label = 'z')
+plt.scatter(Bx2_avg.keys(), Bx2_avg.values(), label = 'x')
+plt.scatter(By2_avg.keys(), By2_avg.values(), label = 'y')
+plt.legend()
+plt.savefig(os.path.join(input_dir,f'B2avg_vs_cutoff.png'))
+plt.close()
+
 
 print(f'Execution time: {timer()-timer_start:.1f}s' )
