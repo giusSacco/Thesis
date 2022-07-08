@@ -133,7 +133,7 @@ for i,mn in enumerate(mn_ions[Ion_index:Ion_index+10], start = Ion_index): # i i
             for frame in u.trajectory [-N:]:
                 k+=1
                 # Print execution progress
-                if (k*1000) % N == 0:
+                if (k*10) % N == 0:
                     print(f'{i+1}/{len(mn_ions)}, {k/N*100:.0f}%')
 
                 # Update info after time evolution       
