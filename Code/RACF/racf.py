@@ -105,7 +105,6 @@ if not os.path.exists(os.path.join(directory_output,'output_data')):
 # Parameters
 threshold_wt_wt = 3.75  # Solvation shell defined as all OW that are closer than threshold_mn_wt to the Mn
 threshold_mn_wt = 2.6   # If the distance between two wt of the same shell is > 2.6 they are assumed to be on opposite sides of the octahedron
-plot_histograms = True  # choose if plot histegrams
 
 # Initialize universe
 u = mda.Universe(TPR, XTC)
