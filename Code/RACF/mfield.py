@@ -3,6 +3,13 @@ import numpy as np
 from timeit import default_timer as timer
 from argparse import ArgumentParser
 
+
+class EmptyFileError(Exception):
+    def __init__(self, filename : str, msg = None):
+        if msg is None:
+            msg = f"Warining: File '{filename}' is empty. It will be ignored."
+        super().__init__(msg)
+
 timer_start = timer()
 def read_file(filename):
     pattern = re.compile(r'''       # Pattern of row of file produced by racf.py
@@ -16,7 +23,12 @@ def read_file(filename):
     v1 = list(); v2 = list(); v3 = list(); position = list(); t = list(); flag = list()
     # Read input file
     with open(filename) as input_file:
-        line = input_file.readline(); line = input_file.readline() # Skip header
+        line = input_file.readline()
+        if not line:
+            raise EmptyFileError(filename)
+
+        N = int(re.compile(r'N\s=\s(\d+)').search(line).group(1))
+        line = input_file.readline() # Skip header
         while line:     # while file is not ended
             if pattern.match(line):
                 groups = pattern.match(line).groups()   # groups are t, positions, vectors, flag
@@ -33,7 +45,7 @@ def read_file(filename):
 
             line = input_file.readline()
 
-    return t, position, v1, v2, v3, flag
+    return t, position, v1, v2, v3, flag, N
 
 program_description = '''Calculates magnetic field from files produced by racf.py.'''
 PROGNAME = os.path.basename(sys.argv[0])
@@ -59,14 +71,17 @@ def magn_field(r_1,r_2,spin_dir):
     if r_2[2] < 9:
         r_2[2] += 165
 
-    for x in [-2,-1,0,1,2]:
-        for y in [-2,-1,0,1,2]:
-            pbc_vector = np.array([x,y,0])*111.067
-            r = r_2 + pbc_vector - r_1
-            r_norm = np.linalg.norm(r)
-            r_versor = r/r_norm
-            if r_norm < r_cutoff:
-                B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
+    n_boxes_z = int((r_cutoff-nv_pos[2])//160)  # Number of boxes to be considered along z (comprehending the #0)
+    n_boxes_xy = int((r_cutoff-111.067/2)//111.067) +1  # Number of boxes to be considered along x or y (not counting the #0)
+    for x in range(-n_boxes_xy, n_boxes_xy+1):
+        for y in range(-n_boxes_xy, n_boxes_xy+1):
+            for z in range(n_boxes_z +1):
+                pbc_vector = np.array([x,y,z])*np.array([111.067,111.067,160])
+                r = r_2 + pbc_vector - r_1
+                r_norm = np.linalg.norm(r)
+                r_versor = r/r_norm
+                if r_norm < r_cutoff:
+                    B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
     return B
 
 def random_dir():
@@ -74,15 +89,27 @@ def random_dir():
     vec /= np.linalg.norm(vec)
     return vec
 
-N = 20001
-B = np.zeros((N,3))
+
+
 nv_pos = np.array([111.067/2,111.067/2,-56.6])
 j=0
 with open(os.path.join(out_dir,f'magnetic_field_rcut{int(r_cutoff)}.txt'),'w') as out_file:
-    out_file.write('t B\n')
+    
     for filename in os.listdir(input_dir):
-        t_list, position, v1, v2, v3, flag = read_file(os.path.join(input_dir,filename))
+        try:
+            t_list, position, v1, v2, v3, flag, N = read_file(os.path.join(input_dir,filename))
+        except EmptyFileError as err:
+            print(err)
+            continue
         alpha, beta, gamma = random_dir()
+
+        if j == 0:
+            out_file.write(f't B, N = {N}\n')
+            B = np.zeros((N,3))
+
+        if N != len(t_list):
+            print(f'Warining: File {filename} is incomplete. Missing rows. It will be ignored.')
+            continue
         
         
         for i,t in enumerate(t_list):
