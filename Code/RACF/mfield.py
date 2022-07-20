@@ -93,34 +93,36 @@ def random_dir():
 
 nv_pos = np.array([111.067/2,111.067/2,-56.6])
 j=0
-with open(os.path.join(out_dir,f'magnetic_field_rcut{int(r_cutoff)}.txt'),'w') as out_file:
+
+for filename in os.listdir(input_dir):
+    try:
+        t_list, position, v1, v2, v3, flag, N = read_file(os.path.join(input_dir,filename))
+    except EmptyFileError as err:
+        print(err)
+        continue
+
     
-    for filename in os.listdir(input_dir):
-        try:
-            t_list, position, v1, v2, v3, flag, N = read_file(os.path.join(input_dir,filename))
-        except EmptyFileError as err:
-            print(err)
-            continue
-        alpha, beta, gamma = random_dir()
+    if N != len(t_list):
+        print(f'Warining: File {filename} is incomplete. Missing rows. It will be ignored.')
+        continue
+    if j == 0:
+        B = np.zeros((N,3))
+    
+    
+    for i,t in enumerate(t_list):
+        spin_dir = np.array([*random_dir()])
+        B[i] += magn_field(nv_pos, position[i], spin_dir)
+    
+    if (j+1)%10 == 0 :
+        print(f' {j+1}/{len(os.listdir(input_dir))}, {timer()-timer_start:.1f}s')
+    j+=1
 
-        if j == 0:
-            out_file.write(f't B, N = {N}\n')
-            B = np.zeros((N,3))
+# Print output file
+with open(os.path.join(out_dir,f'magnetic_field_rcut{int(r_cutoff)}.txt'),'w') as out_file:
 
-        if N != len(t_list):
-            print(f'Warining: File {filename} is incomplete. Missing rows. It will be ignored.')
-            continue
-        
-        
-        for i,t in enumerate(t_list):
-            if flag[i] != 0:
-                alpha, beta, gamma = random_dir()
-            spin_dir = alpha*v1[i] + beta*v2[i] + gamma*v3[i]
-
-            B[i] += magn_field(nv_pos, position[i], spin_dir)
-        if (j+1)%10 == 0 :
-            print(f' {j+1}/{len(os.listdir(input_dir))}, {timer()-timer_start:.1f}s')
-        j+=1
+    out_file.write(f'B_mean = {np.average(B, axis=0)},\t')
+    out_file.write(f'B_squared_mean = {np.average(B**2, axis=0)}\n')
+    out_file.write(f't B, N = {N}\n')
     for i,t in enumerate(t_list):
         out_file.write('{} {} {} {}\n'.format(t, *B[i]))
 
