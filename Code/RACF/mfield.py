@@ -13,14 +13,16 @@ class EmptyFileError(Exception):
 
 timer_start = timer()
 
-program_description = '''Calculates magnetic field from files produced by racf.py.'''
+program_description = '''Calculates magnetic field produced by Mn from xtc files.'''
 PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
-parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input file should be in the subdirectory output_data.')
+parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input xtc and tpr should be here.')
 parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radious (in Angstrom) for magnetic field calculation.')
+parser.add_argument('-n', dest = 'N', required=True, type=int, help = 'Last N frames will be analysed.')
 args_parser = parser.parse_args()
 dir = args_parser.dir
 r_cutoff = args_parser.r_cut
+N = args_parser.N
 
 
 mu_b = 9.274009994e-24 #J T^-1
@@ -31,6 +33,7 @@ A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))
 
 
 def magn_field(r_1,r_2):
+    '''Calculation of magnetic field produced by dipole in r_1 on r_2. Boundary conditions are applied depending on cutoff radius.'''
     B=0
 
     if r_2[2] < 9:
@@ -55,7 +58,7 @@ def random_dir():
     vec /= np.linalg.norm(vec)
     return vec
 
-
+# XTC and TPR in folder
 XTC = [file_ for file_ in os.listdir(dir) if file_.endswith('.xtc')]
 TPR = [file_ for file_ in os.listdir(dir) if file_.endswith('.tpr')]
 if len(XTC)!=1 or len(TPR)!=1:
@@ -70,19 +73,21 @@ if len(XTC)!=1 or len(TPR)!=1:
     sys.exit(1)
 
 u = mda.Universe(TPR[0], XTC[0])
-N = len(u.trajectory)//5
 B = np.zeros((N,3))
 mn_ions = u.select_atoms('resname MN')
-
 nv_pos = np.array([111.067/2,111.067/2,-56.6])
-j=0
+
+j=0 # Keeps track of frame number
 for frame in u.trajectory[-N:]:
     for mn in mn_ions:
         B[j] += magn_field(nv_pos, mn.position)
+    # Print progress
     if (j*10) % N == 0:
         print(f' {j/N*100:.1f}%, {timer()-timer_start:.1f}s')
     j+=1
 
-np.savetxt(os.path.join(dir,f'magnetic_field_rcut{int(r_cutoff)}.txt'), B)
 
-print(f'Execution time: {timer()-timer_start:.1f}s' )
+# Produces file with magnetic field. First row will be average field and second the average of the square.
+np.savetxt( os.path.join(dir,f'B_rcut{int(r_cutoff)}.txt'), np.vstack( (np.average(B,axis=0), np.average(B**2,axis=0), np.array([0,0,0]), B) ) )
+
+print(f'Execution time: {(timer()-timer_start)/60:.1f}min' )
