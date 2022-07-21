@@ -10,7 +10,7 @@ timer_start = timer()
 
 # Read input file
 PROGNAME = os.path.basename(sys.argv[0])
-program_description = '''Plots magnetic field and its autocorrelations.'''
+program_description = '''Plots <B> and <B^2> as a function of cutoff radius.'''
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--dir', dest= 'dir', required = True, help='Directory where to look for "B_files" folder.')
 args_parser = parser.parse_args()

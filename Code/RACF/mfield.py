@@ -12,7 +12,7 @@ program_description = '''Calculates magnetic field produced by Mn from xtc files
 PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input xtc and tpr should be here.')
-parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radious (in Angstrom) for magnetic field calculation.')
+parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radius (in Angstrom) for magnetic field calculation.')
 parser.add_argument('-n', dest = 'N', required=True, type=int, help = 'Last N frames will be analysed.')
 args_parser = parser.parse_args()
 dir = args_parser.dir
@@ -61,9 +61,9 @@ if len(XTC)!=1 or len(TPR)!=1:
         print(f'Error: no xtc found in {dir}')
     if len (XTC) > 1:
         print(f'Error: more than one xtc found in {dir}')
-    if len (XTC) == 0:
+    if len (TPR) == 0:
         print(f'Error: no tpr found in {dir}')
-    if len (XTC) > 1:
+    if len (TPR) > 1:
         print(f'Error: more than tpr xtc found in {dir}')
     sys.exit(1)
 
@@ -77,11 +77,12 @@ for frame in u.trajectory[-N:]:
     for mn in mn_ions:
         B[j] += magn_field(nv_pos, mn.position)
     # Print progress
-    if ((j+1)*10) % N == 0:
+    if (j*10) % N == 0:
         print(f' {j/N*100:.1f}%, {timer()-timer_start:.1f}s')
     j+=1
 
-
+if not os.path.exists(os.path.join(dir,'B_files')):
+    os.mkdir(os.path.join(dir,'B_files'))
 # Produces file with magnetic field and averages: First row will be average field, second the average of the square, third the average of modulus, then a row of zeroes and then B(t)
 Bmod_avg = np.average(np.sqrt(np.sum(B**2,axis=1))) # Average of the modulus of B
 np.savetxt( os.path.join(dir,'B_files',f'B_rcut{int(r_cutoff)}.txt'), np.vstack( (np.average(B,axis=0), np.average(B**2,axis=0), np.array([Bmod_avg,0,0]), np.array([0,0,0]), B) ) )
