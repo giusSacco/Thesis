@@ -1,19 +1,14 @@
-import os, re, sys
+import os, sys
 import numpy as np
 from timeit import default_timer as timer
 from argparse import ArgumentParser
 import MDAnalysis as mda
 
 
-class EmptyFileError(Exception):
-    def __init__(self, filename : str, msg = None):
-        if msg is None:
-            msg = f"Warining: File '{filename}' is empty. It will be ignored."
-        super().__init__(msg)
-
 timer_start = timer()
 
-program_description = '''Calculates magnetic field produced by Mn from xtc files.'''
+program_description = '''Calculates magnetic field produced by Mn from xtc files. Produces file with magnetic field and averages:
+    First row will be average field, second the average of the square, third the average of modulus, then a row of zeroes and then B(t)'''
 PROGNAME = os.path.basename(sys.argv[0])
 parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input xtc and tpr should be here.')
@@ -82,12 +77,13 @@ for frame in u.trajectory[-N:]:
     for mn in mn_ions:
         B[j] += magn_field(nv_pos, mn.position)
     # Print progress
-    if (j*10) % N == 0:
+    if ((j+1)*10) % N == 0:
         print(f' {j/N*100:.1f}%, {timer()-timer_start:.1f}s')
     j+=1
 
 
-# Produces file with magnetic field. First row will be average field and second the average of the square.
-np.savetxt( os.path.join(dir,f'B_rcut{int(r_cutoff)}.txt'), np.vstack( (np.average(B,axis=0), np.average(B**2,axis=0), np.array([0,0,0]), B) ) )
+# Produces file with magnetic field and averages: First row will be average field, second the average of the square, third the average of modulus, then a row of zeroes and then B(t)
+Bmod_avg = np.average(np.sqrt(np.sum(B**2,axis=1))) # Average of the modulus of B
+np.savetxt( os.path.join(dir,'B_files',f'B_rcut{int(r_cutoff)}.txt'), np.vstack( (np.average(B,axis=0), np.average(B**2,axis=0), np.array([Bmod_avg,0,0]), np.array([0,0,0]), B) ) )
 
 print(f'Execution time: {(timer()-timer_start)/60:.1f}min' )
