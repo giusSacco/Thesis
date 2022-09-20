@@ -20,11 +20,12 @@ r_cutoff = args_parser.r_cut
 N_start, N_end = args_parser.N
 N = N_end - N_start
 
-mu_b = 9.274009994e-24 #J T^-1
+'''mu_b = 9.274009994e-24 #J T^-1
 g = -2.00231930436182
 mu_0 = 1.25663706212e-06
 pi = 3.141592653589793
-A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))
+A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))'''
+A = -5.492940828862188
 
 
 def magn_field(r_1,r_2):
@@ -45,7 +46,7 @@ def magn_field(r_1,r_2):
                 r_versor = r/r_norm
                 if r_norm < r_cutoff:
                     spin_dir = np.array([*random_dir()])
-                    B += 1*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
+                    B += A*(3*r_versor*(np.dot(spin_dir,r_versor)) - spin_dir)/(r_norm**3)
     return B
 
 def random_dir():
