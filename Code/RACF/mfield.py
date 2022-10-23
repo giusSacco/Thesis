@@ -14,11 +14,23 @@ parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input xtc and tpr should be here.')
 parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radius (in Angstrom) for magnetic field calculation.')
 parser.add_argument('-n', dest = 'N', nargs=2, required=True, type=int, help = 'Range of frames to be analysed')
+parser.add_argument('-ng', dest = 'ng', nargs=1, required=True, type=int, help = 'n of the grid')
+parser.add_argument('-xy', dest = 'xy', nargs=1, required=True, type=int, help = 'Position where B is evalued in the n x n grid')
 args_parser = parser.parse_args()
 dir = args_parser.dir
+n_grid = args_parser.n_grid
 r_cutoff = args_parser.r_cut
 N_start, N_end = args_parser.N
 N = N_end - N_start
+
+xy = args_parser.xy   # If the orginal xy plane is a square, you can divide it in n x n smaller squares. The magnetic field is then aveluated at the center of each square.
+L_x = 111.067
+x_eval, y_eval = int(str(xy)[0]) +1/2, int(str(xy)[1]) +1/2
+x_eval *= L_x/n_grid; y_eval *= L_x/n_grid
+#x_coord = (np.arange(n_grid)+0.5)*L_x/n_grid  # y_coord will be the same
+nv_pos = np.array([x_eval,y_eval,-56.6])
+
+
 
 '''mu_b = 9.274009994e-24 #J T^-1
 g = -2.00231930436182
@@ -27,20 +39,17 @@ pi = 3.141592653589793
 A = mu_0/(4*pi)*g*mu_b*np.sqrt((5/2)*(5/2+1))'''
 A = -5.492940828862188
 
-
 def magn_field(r_1,r_2):
     '''Calculation of magnetic field produced by dipole in r_1 on r_2. Boundary conditions are applied depending on cutoff radius.'''
     B=0
-
+    # r_1 is nv_pos, r_2 is mn.pos
     if r_2[2] < 9:
         r_2[2] += 165
 
-    n_boxes_z = int((r_cutoff-nv_pos[2])//165)  # Number of boxes to be considered along z (comprehending the #0)
-    n_boxes_xy = int((r_cutoff-111.067/2)//111.067) +1  # Number of boxes to be considered along x or y (not counting the #0)
     for x in range(-n_boxes_xy, n_boxes_xy+1):
         for y in range(-n_boxes_xy, n_boxes_xy+1):
             for z in range(n_boxes_z +1):
-                pbc_vector = np.array([x,y,z])*np.array([111.067,111.067,165])
+                pbc_vector = np.array([x,y,z])*np.array([L_x,L_x,165])
                 r = r_2 + pbc_vector - r_1
                 r_norm = np.linalg.norm(r)
                 r_versor = r/r_norm
@@ -72,7 +81,10 @@ u = mda.Universe(TPR[0], XTC[0])
 B = np.zeros((N,3))
 t = np.zeros(N)
 mn_ions = u.select_atoms('resname MN')
-nv_pos = np.array([111.067/2,111.067/2,-56.6])
+
+n_boxes_z = int((r_cutoff-nv_pos[2])//165)  # Number of boxes to be considered along z (comprehending the #0)
+min_dist_from_side = L_x/2 - np.max(np.abs(nv_pos - np.array([L_x/2,L_x/2])))   # Distance of NV to box side along xy
+n_boxes_xy = int((r_cutoff-min_dist_from_side)//L_x) +1  # Number of boxes to be considered along x or y (not counting the #0)
 
 j=0 # Keeps track of frame number
 for frame in u.trajectory[N_start:N_end]:
