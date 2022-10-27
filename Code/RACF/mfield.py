@@ -14,19 +14,24 @@ parser = ArgumentParser(prog = PROGNAME, description = program_description)
 parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be saved here. Input xtc and tpr should be here.')
 parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radius (in Angstrom) for magnetic field calculation.')
 parser.add_argument('-n', dest = 'N', nargs=2, required=True, type=int, help = 'Range of frames to be analysed')
-parser.add_argument('-ng', dest = 'ng', nargs=1, required=True, type=int, help = 'n of the grid')
-parser.add_argument('-xy', dest = 'xy', nargs=1, required=True, type=int, help = 'Position where B is evalued in the n x n grid')
+parser.add_argument('-ng', dest = 'ng', required=True, type=int, help = 'n of the grid')
+parser.add_argument('-xy', dest = 'xy', required=True, type=int, help = 'Position where B is evalued in the n x n grid')
 args_parser = parser.parse_args()
 dir = args_parser.dir
-n_grid = args_parser.n_grid
+n_grid = args_parser.ng
 r_cutoff = args_parser.r_cut
 N_start, N_end = args_parser.N
 N = N_end - N_start
 
 xy = args_parser.xy   # If the orginal xy plane is a square, you can divide it in n x n smaller squares. The magnetic field is then aveluated at the center of each square.
 L_x = 111.067
-x_eval, y_eval = int(str(xy)[0]) +1/2, int(str(xy)[1]) +1/2
+x_eval = int(str(xy)[0]) +1/2
+y_eval = int(str(xy)[0]) +1/2
 x_eval *= L_x/n_grid; y_eval *= L_x/n_grid
+assert 0 < x_eval < L_x
+assert 0 < y_eval < L_x
+print(f'x_eval ={x_eval}')
+print(f'y_eval ={y_eval}')
 #x_coord = (np.arange(n_grid)+0.5)*L_x/n_grid  # y_coord will be the same
 nv_pos = np.array([x_eval,y_eval,-56.6])
 
@@ -102,6 +107,6 @@ if not os.path.exists(os.path.join(dir,'B_files')):
 Bmod_avg = np.average(np.sqrt(np.sum(B**2,axis=1))) # Average of the modulus of B
 B_array = np.vstack( (np.average(B,axis=0), np.average(B**2,axis=0), np.array([Bmod_avg,0,0]), np.array([0,0,0]), B) )
 # Insert time array in first column and save in output file
-np.savetxt( os.path.join(dir,'B_files',f'B_rcut{int(r_cutoff)}_n{N_start}_{N_end}.txt'), np.insert(B_array,0,np.append(np.zeros(4),t),axis=1))
+np.savetxt( os.path.join(dir,'B_files',f'B_rcut{int(r_cutoff)}_n{N_start}_{N_end}_nxy{n_grid}{xy}.txt'), np.insert(B_array,0,np.append(np.zeros(4),t),axis=1))
 
 print(f'Execution time: {(timer()-timer_start)/60:.1f}min' )
