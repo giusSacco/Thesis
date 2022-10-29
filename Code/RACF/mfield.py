@@ -15,7 +15,7 @@ parser.add_argument('--dir', dest= 'dir', required=True, help='Results will be s
 parser.add_argument('--rcut', dest = 'r_cut', required=True, type=float, help = 'cut-off radius (in Angstrom) for magnetic field calculation.')
 parser.add_argument('-n', dest = 'N', nargs=2, required=True, type=int, help = 'Range of frames to be analysed')
 parser.add_argument('-ng', dest = 'ng', required=True, type=int, help = 'n of the grid')
-parser.add_argument('-xy', dest = 'xy', required=True, type=int, help = 'Position where B is evalued in the n x n grid')
+parser.add_argument('-xy', dest = 'xy', required=True, type=str, help = 'Position where B is evalued in the n x n grid')
 args_parser = parser.parse_args()
 dir = args_parser.dir
 n_grid = args_parser.ng
@@ -25,8 +25,8 @@ N = N_end - N_start
 
 xy = args_parser.xy   # If the orginal xy plane is a square, you can divide it in n x n smaller squares. The magnetic field is then aveluated at the center of each square.
 L_x = 111.067
-x_eval = int(str(xy)[0]) +1/2
-y_eval = int(str(xy)[0]) +1/2
+x_eval = int(xy[0]) +1/2
+y_eval = int(xy[1]) +1/2
 x_eval *= L_x/n_grid; y_eval *= L_x/n_grid
 assert 0 < x_eval < L_x
 assert 0 < y_eval < L_x
@@ -88,7 +88,7 @@ t = np.zeros(N)
 mn_ions = u.select_atoms('resname MN')
 
 n_boxes_z = int((r_cutoff-nv_pos[2])//165)  # Number of boxes to be considered along z (comprehending the #0)
-min_dist_from_side = L_x/2 - np.max(np.abs(nv_pos - np.array([L_x/2,L_x/2])))   # Distance of NV to box side along xy
+min_dist_from_side = L_x/2 - np.max(np.abs(nv_pos[:2] - np.array([L_x/2,L_x/2])))   # Distance of NV to box side along xy
 n_boxes_xy = int((r_cutoff-min_dist_from_side)//L_x) +1  # Number of boxes to be considered along x or y (not counting the #0)
 
 j=0 # Keeps track of frame number
