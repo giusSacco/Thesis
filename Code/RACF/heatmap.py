@@ -52,7 +52,7 @@ for nx in range(n_grid):
 print(Bz_2_avg)
 # 3. Plot the heatmap
 plt.figure(figsize=(10,10))
-heat_map = sns.heatmap( Bz_2_avg, linewidth = 1 , annot = True)
+heat_map = sns.heatmap( Bz_2_avg*1e8, linewidth = 1 , annot = True, fmt='.4g')
 plt.title( "HeatMap <B^2>" )
 plt.savefig(os.path.join(input_dir,f'heatmap_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.png'))
-plt.gca().invert_yaxis().show()
+plt.close()
