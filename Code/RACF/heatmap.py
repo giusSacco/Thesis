@@ -35,8 +35,6 @@ if len(files) != n_grid**2:
     print(f'ERROR: {len(files)} files are found in {input_dir} while {n_grid**2} are expected.')
     sys.exit(1)
 
-print(files, len(files))
-
 Bz_2_avg = np.zeros((n_grid,n_grid))
 
 def read_bz2(filename):
@@ -49,8 +47,9 @@ def read_bz2(filename):
 for nx in range(n_grid):
     for ny in range(n_grid):
         Bz_2_avg[nx,ny] = read_bz2(f'''B_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}{nx}{ny}.txt''')
-print(Bz_2_avg)
-# 3. Plot the heatmap
+
+np.savetxt(f'Bz2avg_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.txt', Bz_2_avg)
+# Plot the heatmap
 plt.figure(figsize=(10,10))
 heat_map = sns.heatmap( Bz_2_avg*1e8, linewidth = 1 , annot = True, fmt='.4g')
 plt.title( "HeatMap <B^2>" )
