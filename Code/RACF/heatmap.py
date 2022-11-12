@@ -48,10 +48,10 @@ for nx in range(n_grid):
     for ny in range(n_grid):
         Bz_2_avg[nx,ny] = read_bz2(f'''B_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}{nx}{ny}.txt''')
 
-np.savetxt(f'Bz2avg_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.txt', Bz_2_avg)
+np.savetxt(os.path.join(input_dir,f'Bz2avg_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.txt'), Bz_2_avg)
 # Plot the heatmap
 plt.figure(figsize=(10,10))
-heat_map = sns.heatmap( Bz_2_avg*1e8, linewidth = 1 , annot = True, fmt='.4g')
+heat_map = sns.heatmap( np.roll(Bz_2_avg*1e8,(0,0)), linewidth = 1 , annot = True, fmt='.4g')
 plt.title( "HeatMap <B^2>" )
 plt.savefig(os.path.join(input_dir,f'heatmap_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.png'))
 plt.close()
