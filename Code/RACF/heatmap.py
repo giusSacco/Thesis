@@ -50,8 +50,15 @@ for nx in range(n_grid):
 
 np.savetxt(os.path.join(input_dir,f'Bz2avg_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.txt'), Bz_2_avg)
 # Plot the heatmap
-plt.figure(figsize=(10,10))
-heat_map = sns.heatmap( np.roll(Bz_2_avg*1e8,(0,0)), linewidth = 1 , annot = True, fmt='.4g')
-plt.title( "HeatMap <B^2>" )
-plt.savefig(os.path.join(input_dir,f'heatmap_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.png'))
+plt.figure(figsize=(8,7))
+L_x = 111.067
+xy_values = [(x + 1/2)*(L_x/n_grid) for x in range(n_grid)]
+xy_values = [f'{x:.0f}' for x in xy_values]
+sns.set(font_scale=2)
+heat_map = sns.heatmap( np.roll(Bz_2_avg*1e9,(0,0)) , fmt='.4g', xticklabels=xy_values, yticklabels=xy_values, cmap = sns.cm.rocket_r, annot_kws={"size":12})
+title_dict = {'onlyPNA_H1': 'only PNA', 'V1': 'PNA-RNA V1', 'H1':'PNA-RNA H1'}
+plt.title( title_dict[input_dir]+r", HeatMap of $\langle B_z^2 \rangle$ (nT)",  fontsize=30)
+plt.xlabel('y ($\AA$)', fontsize = 20)
+plt.ylabel('x ($\AA$)', fontsize = 20)
+plt.savefig(os.path.join(input_dir,'..','Heatmaps',f'heatmap_{input_dir}_rcut{r_cutoff}_n{N_start}_{N_end}_nxy{n_grid}.png'), bbox_inches='tight')
 plt.close()
